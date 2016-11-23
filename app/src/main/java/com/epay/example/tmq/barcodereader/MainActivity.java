@@ -1,23 +1,30 @@
 package com.epay.example.tmq.barcodereader;
 
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.edwardvanraak.materialbarcodescanner.MaterialBarcodeScanner;
 import com.edwardvanraak.materialbarcodescanner.MaterialBarcodeScannerBuilder;
 import com.google.android.gms.vision.barcode.Barcode;
+
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity{
 
@@ -26,6 +33,7 @@ public class MainActivity extends AppCompatActivity{
     private static final int MSG_SCAN_RESULT = 1;
 
     private static final int COUNT_SCAN_LIMIT = 3;
+    private static final int CAMERA_REQUEST = 1232;
 
     private Barcode barcodeResult;
 
@@ -34,6 +42,7 @@ public class MainActivity extends AppCompatActivity{
 
     private int countScan;
     private String [] arrResultScan;
+    private Uri photoUri;
 
 
     @Override
@@ -89,7 +98,7 @@ public class MainActivity extends AppCompatActivity{
                             btnScan.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View view) {
-                                    Toast.makeText(MainActivity.this, "Comming soon!", Toast.LENGTH_SHORT).show();
+                                    pickImageFromCamera();
                                 }
                             });
                         }
@@ -144,6 +153,19 @@ public class MainActivity extends AppCompatActivity{
                 .show();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
+            try {
+//                Bitmap photo = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
+                Bitmap photo = MediaStore.Images.Media.getBitmap(getContentResolver(), photoUri);
+                ImageView ivCapPicture = (ImageView) findViewById(R.id.iv_cap_picture);
+                ivCapPicture.setImageBitmap(photo);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     // ---------------------------------------------------------------------------------------------
 
@@ -154,5 +176,17 @@ public class MainActivity extends AppCompatActivity{
         }
 
         return true;
+    }
+
+    private void pickImageFromCamera() {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.TITLE, "New Picture");
+        values.put(MediaStore.Images.Media.DESCRIPTION, "From your Camera");
+        photoUri = getContentResolver().insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+
+        startActivityForResult(intent, CAMERA_REQUEST);
     }
 }
